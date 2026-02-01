@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}New Request - Raw Material Procurement Mediator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    New Procurement Request
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('submit_request') }}" id="procurementForm">
+                    <!-- Material Information -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="material_type" class="form-label">
+                                <i class="fas fa-cube me-1"></i>Material Type *
+                            </label>
+                            <select class="form-select" id="material_type" name="material_type" required>
+                                <option value="">Select Material Type</option>
+                                <optgroup label="Mining & Coal Handling">
+                                    <option value="coal handling equipment">Coal Handling Equipment</option>
+                                    <option value="mining machinery parts">Mining Machinery Parts</option>
+                                    <option value="conveyor belts">Conveyor Belts</option>
+                                    <option value="rock drilling equipment">Rock Drilling Equipment</option>
+                                    <option value="excavator parts">Excavator Parts</option>
+                                </optgroup>
+                                <optgroup label="Power Generation">
+                                    <option value="boiler tubes">Boiler Tubes</option>
+                                    <option value="turbine components">Turbine Components</option>
+                                    <option value="generator parts">Generator Parts</option>
+                                    <option value="electrical cables">Electrical Cables</option>
+                                    <option value="control systems">Control Systems</option>
+                                    <option value="transformer equipment">Transformer Equipment</option>
+                                </optgroup>
+                                <optgroup label="Construction & Infrastructure">
+                                    <option value="structural steel">Structural Steel</option>
+                                    <option value="concrete materials">Concrete Materials</option>
+                                    <option value="heavy machinery">Heavy Machinery</option>
+                                    <option value="construction tools">Construction Tools</option>
+                                    <option value="welding materials">Welding Materials</option>
+                                </optgroup>
+                                <optgroup label="Safety & Maintenance">
+                                    <option value="safety equipment">Safety Equipment</option>
+                                    <option value="maintenance supplies">Maintenance Supplies</option>
+                                </optgroup>
+                                <optgroup label="Traditional Materials">
+                                    <option value="steel">General Steel</option>
+                                    <option value="aluminum">Aluminum</option>
+                                    <option value="copper">Copper</option>
+                                    <option value="plastic">Plastic</option>
+                                    <option value="rubber">Rubber</option>
+                                </optgroup>
+                            </select>
+                            <div class="form-text">Choose the primary material you need to procure</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="quality_standard" class="form-label">
+                                <i class="fas fa-award me-1"></i>Quality Standard *
+                            </label>
+                            <select class="form-select" id="quality_standard" name="quality_standard" required>
+                                <option value="">Select Quality Standard</option>
+                                <option value="standard">Standard Grade</option>
+                                <option value="premium">Premium Grade</option>
+                                <option value="industrial">Industrial Grade</option>
+                                <option value="aerospace">Aerospace Grade</option>
+                                <option value="medical">Medical Grade</option>
+                            </select>
+                            <div class="form-text">Specify the required quality level</div>
+                        </div>
+                    </div>
+
+                    <!-- Quantity and Budget -->
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="quantity_required" class="form-label">
+                                <i class="fas fa-balance-scale me-1"></i>Quantity Required *
+                            </label>
+                            <input type="number" class="form-control" id="quantity_required" 
+                                   name="quantity_required" step="0.01" min="0.01" required>
+                            <div class="form-text">Enter the amount needed</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="unit" class="form-label">
+                                <i class="fas fa-ruler me-1"></i>Unit *
+                            </label>
+                            <select class="form-select" id="unit" name="unit" required>
+                                <option value="">Select Unit</option>
+                                <option value="kg">Kilograms (kg)</option>
+                                <option value="tons">Tons</option>
+                                <option value="lbs">Pounds (lbs)</option>
+                                <option value="meters">Meters</option>
+                                <option value="yards">Yards</option>
+                                <option value="pieces">Pieces</option>
+                                <option value="rolls">Rolls</option>
+                            </select>
+                            <div class="form-text">Unit of measurement</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="budget_constraint" class="form-label">
+                                <i class="fas fa-dollar-sign me-1"></i>Budget per Unit ($) *
+                            </label>
+                            <input type="number" class="form-control" id="budget_constraint" 
+                                   name="budget_constraint" step="0.01" min="0.01" required>
+                            <div class="form-text">Maximum price per unit</div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Requirements -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="delivery_deadline" class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>Delivery Deadline *
+                            </label>
+                            <select class="form-select" id="delivery_deadline" name="delivery_deadline" required>
+                                <option value="">Select Deadline</option>
+                                <option value="urgent">Urgent (3 days)</option>
+                                <option value="1 week">1 Week</option>
+                                <option value="2 weeks">2 Weeks</option>
+                                <option value="3 weeks">3 Weeks</option>
+                                <option value="1 month">1 Month</option>
+                                <option value="2 months">2 Months</option>
+                                <option value="3 months">3 Months</option>
+                            </select>
+                            <div class="form-text">Required delivery timeframe</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>Request Priority
+                            </label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="priority" id="priority_normal" value="normal" checked>
+                                <label class="form-check-label" for="priority_normal">
+                                    Normal Priority
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="priority" id="priority_high" value="high">
+                                <label class="form-check-label" for="priority_high">
+                                    High Priority
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Requirements -->
+                    <div class="mb-4">
+                        <label for="additional_requirements" class="form-label">
+                            <i class="fas fa-list-ul me-1"></i>Additional Requirements
+                        </label>
+                        <textarea class="form-control" id="additional_requirements" name="additional_requirements" 
+                                  rows="4" placeholder="Specify any additional requirements, certifications, or special conditions..."></textarea>
+                        <div class="form-text">Optional: Add any specific requirements or notes</div>
+                    </div>
+
+                    <!-- Estimated Budget Summary -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-calculator me-1"></i>Estimated Budget Summary
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Quantity:</strong> <span id="summary-quantity">-</span></p>
+                                    <p class="mb-1"><strong>Price per Unit:</strong> <span id="summary-price">-</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Total Estimated Cost:</strong></p>
+                                    <h5 class="text-primary mb-0" id="summary-total">$0.00</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Submit Request & Analyze Vendors
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('quantity_required');
+    const budgetInput = document.getElementById('budget_constraint');
+    const unitSelect = document.getElementById('unit');
+    
+    function updateSummary() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const pricePerUnit = parseFloat(budgetInput.value) || 0;
+        const unit = unitSelect.value || 'units';
+        
+        document.getElementById('summary-quantity').textContent = 
+            quantity > 0 ? `${quantity.toLocaleString()} ${unit}` : '-';
+        document.getElementById('summary-price').textContent = 
+            pricePerUnit > 0 ? `$${pricePerUnit.toLocaleString('en-US', {minimumFractionDigits: 2})}` : '-';
+        
+        const total = quantity * pricePerUnit;
+        document.getElementById('summary-total').textContent = 
+            `$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    }
+    
+    quantityInput.addEventListener('input', updateSummary);
+    budgetInput.addEventListener('input', updateSummary);
+    unitSelect.addEventListener('change', updateSummary);
+    
+    // Form validation
+    document.getElementById('procurementForm').addEventListener('submit', function(e) {
+        const requiredFields = document.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+});
+</script>
+{% endblock %}

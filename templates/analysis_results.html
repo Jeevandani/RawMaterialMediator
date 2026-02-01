@@ -1,0 +1,772 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - Raw Material Procurement Mediator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-chart-line me-2"></i>
+                Vendor Analysis Results
+            </h1>
+            <div>
+                <a href="{{ url_for('download_report', request_id=request.id) }}" class="btn btn-outline-success me-2">
+                    <i class="fas fa-download me-1"></i>Download PDF Report
+                </a>
+                <a href="{{ url_for('request_form') }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-plus me-1"></i>New Request
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Request Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Material Type</h6>
+                        <p class="mb-0">
+                            <i class="fas fa-cube me-1"></i>
+                            {{ request.material_type.title() }}
+                        </p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Quantity Required</h6>
+                        <p class="mb-0">{{ "{:,.0f}".format(request.quantity_required) }} {{ request.unit }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Budget Constraint</h6>
+                        <p class="mb-0">${{ "{:,.2f}".format(request.budget_constraint) }}/unit</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Delivery Deadline</h6>
+                        <p class="mb-0">{{ request.delivery_deadline }}</p>
+                    </div>
+                </div>
+                {% if request.additional_requirements %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6 class="text-muted">Additional Requirements</h6>
+                        <p class="mb-0">{{ request.additional_requirements }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if vendors %}
+<!-- Top Recommendation -->
+{% if recommended_vendor %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-trophy me-2"></i>
+                    Top Recommendation
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4 class="mb-2">{{ recommended_vendor.name }}</h4>
+                        <p class="mb-2">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            {{ recommended_vendor.location }}
+                        </p>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <small class="text-muted">Quality Rating:</small>
+                                <strong class="d-block">{{ recommended_vendor.quality_rating }}/10</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <small class="text-muted">Price per Unit:</small>
+                                <strong class="d-block">${{ "{:,.2f}".format(recommended_vendor.price_per_unit) }}</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-sm-6">
+                                <small class="text-muted">Available Quantity:</small>
+                                <strong class="d-block">{{ "{:,}".format(recommended_vendor.quantity_available) }} units</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <small class="text-muted">Delivery Time:</small>
+                                <strong class="d-block">{{ recommended_vendor.delivery_time }} days</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="mb-3">
+                            <h2 class="text-success mb-0">{{ "%.1f"|format(recommended_vendor.total_score) }}</h2>
+                            <small class="text-muted">Overall Score</small>
+                        </div>
+                        {% if analysis_record and analysis_record.selected_vendor %}
+                            <div class="alert alert-success mb-2">
+                                <i class="fas fa-check-circle me-1"></i>
+                                <strong>Selected by Admin</strong><br>
+                                {% if analysis_record.selection_date %}
+                                    {{ analysis_record.selection_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% endif %}
+                            </div>
+                        {% elif current_user.is_authenticated %}
+                            <form method="POST" action="{{ url_for('select_vendor', analysis_id=analysis_record.id) }}" class="d-inline">
+                                <input type="hidden" name="vendor_id" value="{{ recommended_vendor.vendor_id }}">
+                                <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to select this vendor?')">
+                                    <i class="fas fa-check me-1"></i>
+                                    Select This Vendor
+                                </button>
+                            </form>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <small>Admin login required to select vendor</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Vendor Comparison Table -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Vendor Comparison (Top {{ vendors|length }} Vendors)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Vendor</th>
+                                <th>Quality</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Delivery</th>
+                                <th>Total Score</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vendor in vendors %}
+                            <tr class="{{ 'table-success' if loop.index == 1 else '' }}">
+                                <td>
+                                    {% if loop.index == 1 %}
+                                        <i class="fas fa-crown text-warning me-1"></i>
+                                    {% endif %}
+                                    #{{ loop.index }}
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ vendor.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            {{ vendor.location }}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-info" 
+                                                 style="width: {{ (vendor.quality_score / 100 * 100)|round }}%"></div>
+                                        </div>
+                                        <small>{{ "%.1f"|format(vendor.quality_score) }}</small>
+                                    </div>
+                                    <small class="text-muted">Rating: {{ vendor.quality_rating }}/10</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-success" 
+                                                 style="width: {{ (vendor.price_score / 100 * 100)|round }}%"></div>
+                                        </div>
+                                        <small>{{ "%.1f"|format(vendor.price_score) }}</small>
+                                    </div>
+                                    <small class="text-muted">${{ "{:,.2f}".format(vendor.price_per_unit) }}/unit</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-primary" 
+                                                 style="width: {{ (vendor.quantity_score / 100 * 100)|round }}%"></div>
+                                        </div>
+                                        <small>{{ "%.1f"|format(vendor.quantity_score) }}</small>
+                                    </div>
+                                    <small class="text-muted">{{ "{:,}".format(vendor.quantity_available) }} units</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-warning" 
+                                                 style="width: {{ (vendor.delivery_score / 100 * 100)|round }}%"></div>
+                                        </div>
+                                        <small>{{ "%.1f"|format(vendor.delivery_score) }}</small>
+                                    </div>
+                                    <small class="text-muted">{{ vendor.delivery_time }} days</small>
+                                </td>
+                                <td>
+                                    <h5 class="mb-0 {{ 'text-success' if loop.index == 1 else 'text-primary' }}">
+                                        {{ "%.1f"|format(vendor.total_score) }}
+                                    </h5>
+                                </td>
+                                <td>
+                                    {% if current_user.is_authenticated %}
+                                        {% if analysis_record and not analysis_record.selected_vendor %}
+                                            <form method="POST" action="{{ url_for('select_vendor', analysis_id=analysis_record.id) }}" class="d-inline me-1">
+                                                <input type="hidden" name="vendor_id" value="{{ vendor.vendor_id }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-success" 
+                                                        onclick="return confirm('Select {{ vendor.name }} as the final vendor?')">
+                                                    <i class="fas fa-check me-1"></i>Select
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="viewVendorDetails('{{ vendor.vendor_id }}')">
+                                        <i class="fas fa-eye me-1"></i>Details
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Vendor Selection Panel (Only for Admins) -->
+{% if current_user.is_authenticated and analysis_record and not analysis_record.selected_vendor %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Admin Vendor Selection
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('select_vendor', analysis_id=analysis_record.id) }}" id="vendorSelectionForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="vendor_id" class="form-label">
+                                <i class="fas fa-users me-1"></i>Select Final Vendor *
+                            </label>
+                            <select class="form-select" id="vendor_id" name="vendor_id" required>
+                                <option value="">Choose vendor...</option>
+                                {% for vendor in vendors %}
+                                <option value="{{ vendor.vendor_id }}" 
+                                        {% if loop.index == 1 %}selected{% endif %}
+                                        data-score="{{ vendor.total_score }}"
+                                        data-name="{{ vendor.name }}">
+                                    #{{ loop.index }} - {{ vendor.name }} (Score: {{ "%.1f"|format(vendor.total_score) }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="notes" class="form-label">
+                                <i class="fas fa-sticky-note me-1"></i>Selection Notes
+                            </label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Add reasoning for this vendor selection..."></textarea>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-warning" 
+                                    onclick="return confirm('Confirm vendor selection? This action cannot be undone.')">
+                                <i class="fas fa-gavel me-1"></i>
+                                Confirm Vendor Selection
+                            </button>
+                            <small class="text-muted ms-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                This will finalize the vendor selection for this procurement request.
+                            </small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif analysis_record and analysis_record.selected_vendor %}
+<!-- Selected Vendor Confirmation -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Vendor Selection Completed
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4 class="text-success mb-2">
+                            <i class="fas fa-building me-1"></i>
+                            {{ analysis_record.selected_vendor }}
+                        </h4>
+                        <p class="mb-2">
+                            <strong>Selected by:</strong> 
+                            {% if analysis_record.selected_by_admin %}
+                                <i class="fas fa-user-shield me-1"></i>{{ analysis_record.selected_by_admin.username }}
+                            {% else %}
+                                Admin
+                            {% endif %}
+                        </p>
+                        <p class="mb-2">
+                            <strong>Selection Date:</strong> 
+                            {{ analysis_record.selection_date.strftime('%Y-%m-%d %H:%M') if analysis_record.selection_date else 'N/A' }}
+                        </p>
+                        {% if analysis_record.selection_notes %}
+                        <p class="mb-0">
+                            <strong>Notes:</strong> {{ analysis_record.selection_notes }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="fas fa-medal fa-4x text-warning mb-2"></i>
+                        <h6 class="text-muted">Final Selection</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Enhanced Score Visualization -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Overall Scores Comparison
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="scoresChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-radar me-2"></i>
+                    Criteria Breakdown (Top Vendor)
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="criteriaChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Criteria Analysis Charts -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Score Distribution
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="distributionChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Criteria Performance
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Summary -->
+{% if analysis_results and analysis_results.analysis_summary %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Analysis Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ analysis_results.analysis_summary }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- No Vendors Found -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h4 class="text-muted">No Vendors Found</h4>
+                <p class="text-muted mb-4">
+                    No vendors were found for the requested material type: <strong>{{ request.material_type.title() }}</strong>
+                </p>
+                <a href="{{ url_for('request_form') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create New Request
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if vendors %}
+<script>
+// Overall Scores Chart
+const ctx1 = document.getElementById('scoresChart').getContext('2d');
+const scoresChart = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for vendor in vendors %}
+            '{{ vendor.name[:20] }}{{ "..." if vendor.name|length > 20 else "" }}',
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Overall Score',
+            data: [
+                {% for vendor in vendors %}
+                {{ vendor.total_score }},
+                {% endfor %}
+            ],
+            backgroundColor: [
+                {% for vendor in vendors %}
+                '{{ "rgba(25, 135, 84, 0.8)" if loop.index == 1 else "rgba(13, 110, 253, 0.8)" }}',
+                {% endfor %}
+            ],
+            borderColor: [
+                {% for vendor in vendors %}
+                '{{ "rgba(25, 135, 84, 1)" if loop.index == 1 else "rgba(13, 110, 253, 1)" }}',
+                {% endfor %}
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Criteria Breakdown Chart (for top vendor)
+{% if recommended_vendor %}
+const ctx2 = document.getElementById('criteriaChart').getContext('2d');
+const criteriaChart = new Chart(ctx2, {
+    type: 'radar',
+    data: {
+        labels: ['Quality', 'Price', 'Quantity', 'Delivery'],
+        datasets: [{
+            label: '{{ recommended_vendor.name }}',
+            data: [
+                {{ recommended_vendor.quality_score }},
+                {{ recommended_vendor.price_score }},
+                {{ recommended_vendor.quantity_score }},
+                {{ recommended_vendor.delivery_score }}
+            ],
+            backgroundColor: 'rgba(25, 135, 84, 0.2)',
+            borderColor: 'rgba(25, 135, 84, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(25, 135, 84, 1)',
+            pointBorderColor: 'rgba(25, 135, 84, 1)',
+            pointRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            r: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+{% endif %}
+
+// Score Distribution Chart
+const ctx3 = document.getElementById('distributionChart').getContext('2d');
+const distributionChart = new Chart(ctx3, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            {% for vendor in vendors %}
+            '{{ vendor.name[:10] }}{{ "..." if vendor.name|length > 10 else "" }}',
+            {% endfor %}
+        ],
+        datasets: [{
+            data: [
+                {% for vendor in vendors %}
+                {{ vendor.total_score }},
+                {% endfor %}
+            ],
+            backgroundColor: [
+                'rgba(25, 135, 84, 0.8)',
+                'rgba(13, 110, 253, 0.8)',
+                'rgba(13, 202, 240, 0.8)'
+            ],
+            borderColor: [
+                'rgba(25, 135, 84, 1)',
+                'rgba(13, 110, 253, 1)',
+                'rgba(13, 202, 240, 1)'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const percentage = ((context.parsed / context.dataset.data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
+                        return `${context.label}: ${context.parsed.toFixed(1)} (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Criteria Performance Chart
+const ctx4 = document.getElementById('performanceChart').getContext('2d');
+const performanceChart = new Chart(ctx4, {
+    type: 'line',
+    data: {
+        labels: ['Quality', 'Price', 'Quantity', 'Delivery'],
+        datasets: [
+            {% for vendor in vendors %}
+            {
+                label: '{{ vendor.name[:15] }}{{ "..." if vendor.name|length > 15 else "" }}',
+                data: [
+                    {{ vendor.quality_score }},
+                    {{ vendor.price_score }},
+                    {{ vendor.quantity_score }},
+                    {{ vendor.delivery_score }}
+                ],
+                borderColor: '{{ "rgba(25, 135, 84, 1)" if loop.index == 1 else ("rgba(13, 110, 253, 1)" if loop.index == 2 else "rgba(13, 202, 240, 1)") }}',
+                backgroundColor: '{{ "rgba(25, 135, 84, 0.1)" if loop.index == 1 else ("rgba(13, 110, 253, 0.1)" if loop.index == 2 else "rgba(13, 202, 240, 0.1)") }}',
+                borderWidth: {{ 3 if loop.index == 1 else 2 }},
+                pointRadius: {{ 6 if loop.index == 1 else 4 }},
+                pointHoverRadius: {{ 8 if loop.index == 1 else 6 }},
+                tension: 0.4,
+                fill: false
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}/100`;
+                    }
+                }
+            }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        }
+    }
+});
+
+// Vendor details modal functionality
+function viewVendorDetails(vendorId) {
+    const vendors = {
+        {% for vendor in vendors %}
+        '{{ vendor.vendor_id }}': {
+            name: '{{ vendor.name }}',
+            location: '{{ vendor.location }}',
+            quality_rating: {{ vendor.quality_rating }},
+            price_per_unit: {{ vendor.price_per_unit }},
+            quantity_available: {{ vendor.quantity_available }},
+            delivery_time: {{ vendor.delivery_time }},
+            contact_info: '{{ vendor.contact_info }}',
+            certifications: {{ vendor.certifications|tojson }},
+            total_score: {{ vendor.total_score }},
+            quality_score: {{ vendor.quality_score }},
+            price_score: {{ vendor.price_score }},
+            quantity_score: {{ vendor.quantity_score }},
+            delivery_score: {{ vendor.delivery_score }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    
+    const vendor = vendors[vendorId];
+    if (!vendor) {
+        alert('Vendor details not found');
+        return;
+    }
+    
+    // Create modal HTML
+    const modalHtml = `
+        <div class="modal fade" id="vendorModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-building me-2"></i>${vendor.name}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-info-circle me-1"></i>Basic Information</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Location:</strong></td><td>${vendor.location}</td></tr>
+                                    <tr><td><strong>Quality Rating:</strong></td><td>${vendor.quality_rating}/10</td></tr>
+                                    <tr><td><strong>Price per Unit:</strong></td><td>$${vendor.price_per_unit.toLocaleString()}</td></tr>
+                                    <tr><td><strong>Available Quantity:</strong></td><td>${vendor.quantity_available.toLocaleString()} units</td></tr>
+                                    <tr><td><strong>Delivery Time:</strong></td><td>${vendor.delivery_time} days</td></tr>
+                                    <tr><td><strong>Contact:</strong></td><td>${vendor.contact_info}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-chart-bar me-1"></i>Analysis Scores</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Overall Score:</strong></td><td><span class="badge bg-primary">${vendor.total_score.toFixed(1)}/100</span></td></tr>
+                                    <tr><td><strong>Quality Score:</strong></td><td><span class="badge bg-info">${vendor.quality_score.toFixed(1)}/100</span></td></tr>
+                                    <tr><td><strong>Price Score:</strong></td><td><span class="badge bg-success">${vendor.price_score.toFixed(1)}/100</span></td></tr>
+                                    <tr><td><strong>Quantity Score:</strong></td><td><span class="badge bg-primary">${vendor.quantity_score.toFixed(1)}/100</span></td></tr>
+                                    <tr><td><strong>Delivery Score:</strong></td><td><span class="badge bg-warning">${vendor.delivery_score.toFixed(1)}/100</span></td></tr>
+                                </table>
+                                <h6><i class="fas fa-certificate me-1"></i>Certifications</h6>
+                                <div class="d-flex flex-wrap gap-1">
+                                    ${vendor.certifications.map(cert => `<span class="badge bg-secondary">${cert}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('vendorModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body and show
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('vendorModal'));
+    modal.show();
+    
+    // Clean up when modal is hidden
+    document.getElementById('vendorModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+</script>
+{% endif %}
+{% endblock %}
